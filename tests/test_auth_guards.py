@@ -57,6 +57,38 @@ class AuthenticationGuardTests(unittest.TestCase):
         response = self.client.post("/short", data={"url": "javascript:alert(1)"})
         self.assertEqual(response.status_code, 400)
 
+    def test_anonymous_deletion_does_not_query_database(self):
+        with patch("views.dashboard_view.UrlModel.objects") as urls:
+            response = self.client.delete("/urls/507f1f77bcf86cd799439011")
+            self.assertEqual(response.status_code, 401)
+            urls.assert_not_called()
+
+    def test_deletion_is_scoped_to_signed_in_user(self):
+        with self.client.session_transaction() as session:
+            session["current_user"] = {"id": "user-id"}
+        with patch("views.dashboard_view.UrlModel.objects") as urls:
+            urls.return_value.delete.return_value = 1
+            response = self.client.delete("/urls/507f1f77bcf86cd799439011")
+            self.assertEqual(response.status_code, 204)
+            self.assertEqual(response.data, b"")
+            urls.assert_called_once_with(id="507f1f77bcf86cd799439011", user="user-id")
+
+    def test_missing_or_unowned_link_returns_404(self):
+        with self.client.session_transaction() as session:
+            session["current_user"] = {"id": "user-id"}
+        with patch("views.dashboard_view.UrlModel.objects") as urls:
+            urls.return_value.delete.return_value = 0
+            response = self.client.delete("/urls/507f1f77bcf86cd799439011")
+            self.assertEqual(response.status_code, 404)
+            self.assertEqual(response.json, {"error": "Link not found."})
+
+    def test_invalid_link_id_does_not_query_database(self):
+        with self.client.session_transaction() as session:
+            session["current_user"] = {"id": "user-id"}
+        with patch("views.dashboard_view.UrlModel.objects") as urls:
+            self.assertEqual(self.client.delete("/urls/invalid").status_code, 404)
+            urls.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

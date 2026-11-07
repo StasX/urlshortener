@@ -52,6 +52,17 @@ function logout() {
 }
 
 
+function removeUrl(id, button, error) {
+    button.prop("disabled", true);
+    error.text("");
+    $.ajax({ url: `/urls/${encodeURIComponent(id)}`, method: "DELETE" })
+        .done(() => location.reload())
+        .fail((response) => {
+            error.text(response.responseJSON?.error || "Could not remove the link. Please try again.");
+            button.prop("disabled", false);
+        });
+}
+
 //Generate url card
 function generateCard(data) {
     const card = $("<div>").addClass("card col-md-8 offset-md-2");
@@ -66,8 +77,10 @@ function generateCard(data) {
         row.append(document.createTextNode(` ${value}`));
     }
     const actions = $("<div>").appendTo(body);
+    const error = $("<div>").addClass("text-danger").attr("role", "alert").appendTo(actions);
     const button = $("<button>").addClass("btn btn-md btn-danger")
-        .text("Remove link ").on("click", () => removeUrl(data.id)).appendTo(actions);
+        .attr("type", "button").text("Remove link ")
+        .on("click", () => removeUrl(data.id, button, error)).appendTo(actions);
     $("<i>").addClass("fa-solid fa-xmark").appendTo(button);
     return card;
 }

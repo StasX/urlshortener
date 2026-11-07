@@ -5,6 +5,7 @@ from models.user_model import UserModel
 from mongoengine import DoesNotExist
 from random import randint
 from utils.auth import login_required
+from bson import ObjectId
 
 
 dashboard_blueprint = Blueprint("dashboard_view", __name__)
@@ -33,3 +34,14 @@ def stat():
         "visits": url_model.enters
     } for url_model in urls_models]
     return jsonify(data)
+
+
+@dashboard_blueprint.route("/urls/<url_id>", methods=["DELETE"])
+@login_required(api=True)
+def delete_url(url_id):
+    if not ObjectId.is_valid(url_id):
+        return jsonify({"error": "Link not found."}), 404
+    deleted = UrlModel.objects(id=url_id, user=session["current_user"]["id"]).delete()
+    if not deleted:
+        return jsonify({"error": "Link not found."}), 404
+    return Response(status=204)
