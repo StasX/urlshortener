@@ -2,6 +2,7 @@ from flask import Blueprint, request, render_template, session, redirect, jsonif
 import http.client
 from utils.url_resolver import InvalidPublicURL, resolve_public_url
 from utils.url_validation import validate_destination_url
+from utils.auth import login_required
 from random import choice
 from string import ascii_letters, digits
 from models.url_model import UrlModel
@@ -32,6 +33,7 @@ def get_url():
 
 
 @home_blueprint.route("/short", methods=["POST"])
+@login_required(api=True)
 def short_it():
     try:
         full_url = validate_destination_url(request.form.get("url"))

@@ -4,12 +4,14 @@ from models.url_model import UrlModel
 from models.user_model import UserModel
 from mongoengine import DoesNotExist
 from random import randint
+from utils.auth import login_required
 
 
 dashboard_blueprint = Blueprint("dashboard_view", __name__)
 
 
 @dashboard_blueprint.route("/dashboard")
+@login_required()
 def render():
     user = session["current_user"]
     urls_models = UrlModel.objects(user=user["id"])
@@ -20,6 +22,7 @@ def render():
 
 
 @dashboard_blueprint.route("/urls-stat")
+@login_required(api=True)
 def stat():
     user = session["current_user"]
     urls_models = UrlModel.objects(user=user["id"])
