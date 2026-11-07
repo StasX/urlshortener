@@ -12,3 +12,4 @@ class AppConfig:
     db_port = int(environ.get("DB_PORT"))
     db_user = environ.get("DB_USER")
     db_password = environ.get("DB_PASSWORD")
+    public_base_url = environ.get("PUBLIC_BASE_URL", "http://localhost:5000")

@@ -4,12 +4,14 @@ from views.auth_view import auth_blueprint
 from views.home_view import home_blueprint
 from views.dashboard_view import dashboard_blueprint
 from utils.app_config import AppConfig
+from utils.short_links import public_base_url
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
 app.secret_key = AppConfig.secret_key
+app.config["PUBLIC_BASE_URL"] = public_base_url(AppConfig.public_base_url)
 limiter = Limiter(
     get_remote_address,
     app=app,
