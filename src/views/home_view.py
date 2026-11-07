@@ -1,6 +1,7 @@
 from flask import Blueprint, request, render_template, session, redirect, jsonify, Response
 import http.client
 from utils.url_resolver import InvalidPublicURL, resolve_public_url
+from utils.url_validation import validate_destination_url
 from random import choice
 from string import ascii_letters, digits
 from models.url_model import UrlModel
@@ -32,9 +33,12 @@ def get_url():
 
 @home_blueprint.route("/short", methods=["POST"])
 def short_it():
+    try:
+        full_url = validate_destination_url(request.form.get("url"))
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
     user_id = session["current_user"]["id"]
     user_model = UserModel.objects.get(id=user_id)
-    full_url = request.form.get("url")
     chars = ascii_letters+digits
     short_url = None
     run_again = True

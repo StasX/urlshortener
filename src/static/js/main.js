@@ -54,20 +54,22 @@ function logout() {
 
 //Generate url card
 function generateCard(data) {
-    return `
-        <div class="card col-md-8 offset-md-2">
-            <div class="card-body">
-                <div class="mt-2"><b>Shorted url:</b> ${data.shortUrl}</div>
-                <div class="mt-2"><b>Full url:</b> ${data.fullUrl}</div> 
-                <div class="mt-2 mb-4"><b>Visits:</b> ${data.visits}</div>
-                <div>
-                    <button onclick="removeUrl('${data.id}')" class="btn btn-md btn-danger">
-                        Remove link <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
+    const card = $("<div>").addClass("card col-md-8 offset-md-2");
+    const body = $("<div>").addClass("card-body").appendTo(card);
+    for (const [label, value, classes] of [
+        ["Shorted url:", data.shortUrl, "mt-2"],
+        ["Full url:", data.fullUrl, "mt-2"],
+        ["Visits:", data.visits, "mt-2 mb-4"],
+    ]) {
+        const row = $("<div>").addClass(classes).appendTo(body);
+        $("<b>").text(label).appendTo(row);
+        row.append(document.createTextNode(` ${value}`));
+    }
+    const actions = $("<div>").appendTo(body);
+    const button = $("<button>").addClass("btn btn-md btn-danger")
+        .text("Remove link ").on("click", () => removeUrl(data.id)).appendTo(actions);
+    $("<i>").addClass("fa-solid fa-xmark").appendTo(button);
+    return card;
 }
 
 
