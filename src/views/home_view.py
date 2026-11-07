@@ -1,5 +1,6 @@
 from flask import Blueprint, request, render_template, session, redirect, jsonify, Response
-import requests
+import http.client
+from utils.url_resolver import InvalidPublicURL, resolve_public_url
 from random import choice
 from string import ascii_letters, digits
 from models.url_model import UrlModel
@@ -19,10 +20,14 @@ def render():
 @home_blueprint.route("/geturl", methods=["POST"])
 def get_url():
     url = request.form.get("url")
-    response = requests.get(url, allow_redirects=False)
-    if response.is_redirect or response.status_code == 302:
-        url = response.headers['Location']
-    return jsonify({"url": url})
+    try:
+        return jsonify({"url": resolve_public_url(url)})
+    except InvalidPublicURL as error:
+        return jsonify({"error": str(error)}), 400
+    except TimeoutError:
+        return jsonify({"error": "Destination timed out."}), 504
+    except (OSError, http.client.HTTPException, UnicodeError, ValueError):
+        return jsonify({"error": "Could not retrieve the destination URL."}), 502
 
 
 @home_blueprint.route("/short", methods=["POST"])
