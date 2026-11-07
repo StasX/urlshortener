@@ -65,4 +65,4 @@ def redirect_to(url_part):
             return redirect(url_model.full_url)
         return Response(status=200)
     except DoesNotExist:
-        return render_template("404.html")
+        return render_template("404.html"), 404
