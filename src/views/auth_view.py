@@ -15,10 +15,11 @@ def login():
     try:
         email = request.form["username"]
         password = request.form["password"]
-        users = UserModel.objects(
-            email=email, password=Security.hash(password))
-        if len(users) > 0:
-            user = users[0]
+        user = UserModel.objects(email=email).first()
+        if user and Security.verify(user.password, password):
+            if Security.needs_rehash(user.password):
+                user.password = Security.hash(password)
+                user.save()
             session["current_user"] = {
                 "id": str(user.id),
                 "first_name": user.first_name,
