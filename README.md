@@ -193,6 +193,13 @@ CI generates a disposable `.env` with a random session secret. It uploads test,
 container, and security reports as artifacts with 14-day retention. The container
 job removes its Compose services and volumes when it finishes.
 
+The container job uses `ubuntu-22.04` to avoid MongoDB 8.0's startup failure on
+newer GitHub-hosted runner kernels. See the
+[GitHub runner issue](https://github.com/actions/runner-images/issues/15005).
+If MongoDB reports the same kernel incompatibility on another host, check that
+host's kernel against the [MongoDB compatibility notice](https://www.mongodb.com/docs/v8.0/release-notes/8.0/).
+Changing the Docker image's Linux distribution does not change the host kernel.
+
 ## Project layout
 
 ```text

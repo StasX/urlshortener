@@ -59,7 +59,9 @@ jobs:
 
   containers:
     name: Docker Compose and MongoDB integration
-    runs-on: ubuntu-latest
+    # MongoDB 8.0 rejects newer Ubuntu runner kernels (SERVER-131779).
+    # https://github.com/actions/runner-images/issues/15005
+    runs-on: ubuntu-22.04
     timeout-minutes: 20
     env:
       COMPOSE_PROJECT_NAME: urlshortener-ci
