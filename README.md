@@ -26,3 +26,26 @@ host port; the container listens on port 5000. Database credentials are currentl
 unused by the application.
 
 For an existing database, see [the short-link migration instructions](LINK_MIGRATION.md).
+
+## Continuous integration
+
+The GitHub Actions workflow runs on pushes, pull requests, and manual dispatch.
+It runs the Python unittest suite and JavaScript checks, builds both Docker
+images, waits for healthy services, verifies non-root users, and tests guest
+expiry, registration/login, ownership, and rate limits against real MongoDB.
+Checkov, Trivy, and Bandit run as separate security checks. Logs are uploaded as
+artifacts, and the CI containers and volumes are removed after the run.
+
+To run the integration check locally with Compose already running:
+
+```sh
+docker compose exec -T server python - < server/tests/smoke_compose.py
+```
+
+In PowerShell, use:
+
+```powershell
+Get-Content server/tests/smoke_compose.py -Raw | docker compose exec -T server python -
+```
+
+The check creates a separate temporary database and removes it afterward.
