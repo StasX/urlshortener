@@ -13,15 +13,12 @@
             <div class="tool-heading"><span class="tool-icon" aria-hidden="true">&#8599;</span><span class="eyebrow">01 / Create</span></div>
             <h2>Less link, more impact.</h2>
             <p class="muted">Turn a lengthy URL into something worth sharing.</p>
-            {% if user %}
             <label for="fullUrl">Your destination URL</label>
             <textarea class="form-control" id="fullUrl" placeholder="https://example.com/your-next-big-idea" rows="3"></textarea>
             <button class="btn btn-dark tool-submit" id="shortIt" type="button">Create short link <span aria-hidden="true">&#8599;</span></button>
             <output id="shortedUrl" class="form-control result-box" aria-live="polite" aria-label="Short link result"></output>
-            {% else %}
-            <div class="link-preview" aria-hidden="true"><span>your-very-long-link.com/&hellip;</span><span>&#8599;</span><strong>shorty / your next idea</strong></div>
-            <a href="{{ url_for('auth_view.register') }}" class="btn btn-dark tool-submit">Create your free account <span aria-hidden="true">&#8599;</span></a>
-            <p class="small-note">Already here? <a href="{{ url_for('auth_view.login') }}">Sign in</a> to start shortening.</p>
+            {% if not user %}
+            <p class="small-note">Guest links expire after 24 hours and cannot be managed. <a href="{{ url_for('auth_view.login') }}">Sign in</a> or <a href="{{ url_for('auth_view.register') }}">create an account</a> before shortening to keep your links and track visits.</p>
             {% endif %}
         </div>
     </section>

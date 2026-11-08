@@ -2,13 +2,13 @@ from flask import Blueprint, request, render_template, session, redirect, jsonif
 import http.client
 from utils.url_resolver import InvalidPublicURL, resolve_public_url
 from utils.url_validation import validate_destination_url
-from utils.auth import login_required
+from datetime import datetime, timedelta, timezone
 from utils.short_links import public_base_url
 from secrets import choice
 from string import ascii_letters, digits
 from models.url_model import UrlModel
 from models.user_model import UserModel
-from mongoengine import NotUniqueError
+from mongoengine import NotUniqueError, Q
 
 
 home_blueprint = Blueprint("home_view", __name__)
@@ -34,14 +34,15 @@ def get_url():
 
 
 @home_blueprint.route("/short", methods=["POST"])
-@login_required(api=True)
 def short_it():
     try:
         full_url = validate_destination_url(request.form.get("url"))
     except ValueError as error:
         return jsonify({"error": str(error)}), 400
-    user_id = session["current_user"]["id"]
-    user_model = UserModel.objects.get(id=user_id)
+    user = session.get("current_user")
+    user_id = user.get("id") if isinstance(user, dict) else None
+    user_model = UserModel.objects.get(id=user_id) if user_id else None
+    expires_at = None if user_model else datetime.now(timezone.utc) + timedelta(hours=24)
     chars = ascii_letters+digits
     base_url = public_base_url(current_app.config.get("PUBLIC_BASE_URL", "http://localhost:5000"))
     for _ in range(10):
@@ -49,7 +50,7 @@ def short_it():
         short_url = f"{base_url}/{short_string}"
         try:
             UrlModel(code=short_string, short_url=short_url,
-                     full_url=full_url, user=user_model).save()
+                     full_url=full_url, user=user_model, expires_at=expires_at).save()
         except NotUniqueError:
             continue
         return jsonify({"url": short_url})
@@ -60,7 +61,9 @@ def short_it():
 def redirect_to(url_part):
     if url_part == "favicon.ico":
         return Response(status=200)
-    url_model = UrlModel.objects(code=url_part).modify(inc__enters=1, new=True)
+    url_model = UrlModel.objects(code=url_part).filter(
+        Q(expires_at=None) | Q(expires_at__gt=datetime.now(timezone.utc))
+    ).modify(inc__enters=1, new=True)
     if url_model is None:
         return render_template("404.html"), 404
     return redirect(url_model.full_url)

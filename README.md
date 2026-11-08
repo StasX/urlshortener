@@ -1,5 +1,9 @@
 # URL Shortener
 
+Guests can create unmanaged links that expire after 24 hours. Expired links
+stop redirecting immediately; MongoDB's TTL index removes them in the background.
+Links created while signed in stay in the user's dashboard and do not expire.
+
 Run the Flask application and MongoDB with Docker Compose:
 
 1. Copy `.env.example` to `.env` and set `SECRET_KEY` to a random value. Generate

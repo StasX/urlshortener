@@ -67,17 +67,17 @@ class LinkRouteTests(unittest.TestCase):
 
     def test_redirect_uses_code_and_atomic_increment(self):
         with patch("views.home_view.UrlModel.objects") as urls:
-            urls.return_value.modify.return_value.full_url = "https://destination.example"
+            urls.return_value.filter.return_value.modify.return_value.full_url = "https://destination.example"
             for host in ("http://old.example", "https://new.example"):
                 response = self.client.get("/abc123", base_url=host)
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.headers["Location"], "https://destination.example")
                 urls.assert_called_with(code="abc123")
-                urls.return_value.modify.assert_called_with(inc__enters=1, new=True)
+                urls.return_value.filter.return_value.modify.assert_called_with(inc__enters=1, new=True)
 
     def test_unknown_code_returns_404(self):
         with patch("views.home_view.UrlModel.objects") as urls, patch("views.home_view.render_template", return_value="Missing"):
-            urls.return_value.modify.return_value = None
+            urls.return_value.filter.return_value.modify.return_value = None
             self.assertEqual(self.client.get("/missing").status_code, 404)
 
     def test_exhausted_collisions_return_503(self):
@@ -87,6 +87,26 @@ class LinkRouteTests(unittest.TestCase):
             response = self.client.post("/short", data={"url": "https://destination.example"})
             self.assertEqual(response.status_code, 503)
             self.assertEqual(model.return_value.save.call_count, 10)
+
+    def test_guest_link_expires_after_24_hours_without_user_lookup(self):
+        from datetime import datetime, timedelta, timezone
+        with self.client.session_transaction() as session:
+            session.clear()
+        before = datetime.now(timezone.utc)
+        with patch("views.home_view.UserModel.objects") as users, patch("views.home_view.UrlModel") as model:
+            response = self.client.post("/short", data={"url": "https://destination.example"})
+            self.assertEqual(response.status_code, 200)
+            users.assert_not_called()
+            self.assertIsNone(model.call_args.kwargs["user"])
+            expiry = model.call_args.kwargs["expires_at"]
+            self.assertGreaterEqual(expiry, before + timedelta(hours=24))
+            self.assertLessEqual(expiry, datetime.now(timezone.utc) + timedelta(hours=24))
+
+    def test_authenticated_links_do_not_expire(self):
+        with patch("views.home_view.UserModel.objects"), patch("views.home_view.UrlModel") as model:
+            response = self.client.post("/short", data={"url": "https://destination.example"})
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNone(model.call_args.kwargs["expires_at"])
 
     def test_code_has_unique_database_constraint(self):
         from models.url_model import UrlModel

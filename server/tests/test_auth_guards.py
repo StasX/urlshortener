@@ -27,7 +27,7 @@ class AuthenticationGuardTests(unittest.TestCase):
             page = self.client.get("/dashboard")
             self.assertEqual(page.status_code, 302)
             self.assertEqual(page.headers["Location"], "/login")
-            for response in (self.client.post("/short"), self.client.get("/urls-stat")):
+            for response in (self.client.get("/urls-stat"),):
                 self.assertEqual(response.status_code, 401)
                 self.assertEqual(response.json, {"error": "Authentication required."})
             users.assert_not_called()
@@ -40,7 +40,7 @@ class AuthenticationGuardTests(unittest.TestCase):
                     session["current_user"] = user
                 self.assertEqual(self.client.get("/dashboard").status_code, 302)
                 self.assertEqual(self.client.get("/urls-stat").status_code, 401)
-                self.assertEqual(self.client.post("/short").status_code, 401)
+                self.assertEqual(self.client.post("/short").status_code, 400)
 
     def test_authenticated_statistics_remain_scoped_to_user(self):
         with self.client.session_transaction() as session:
