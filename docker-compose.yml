@@ -1,7 +1,8 @@
 services:
   server:
     build:
-      context: ./server
+      context: .
+      dockerfile: server/Dockerfile
     ports:
       - "${APP_PORT:?Set APP_PORT in .env}:5000"
     env_file:

@@ -27,15 +27,15 @@ def main():
         guest = app.test_client()
         for path in ("/", "/login", "/register", "/health"):
             check(guest.get(path).status_code == 200, f"Page failed: {path}")
-        check(guest.get("/urls-stat").status_code == 401, "Guest statistics must be protected")
-        check(guest.get("/dashboard").status_code == 302, "Guest dashboard must redirect to login")
-        response = guest.post("/short", data={"url": "javascript:alert(1)"})
+        check(guest.get("/api/links").status_code == 401, "Guest statistics must be protected")
+        check(guest.get("/dashboard").status_code == 200, "Dashboard SPA shell must support direct navigation")
+        response = guest.post("/api/links", json={"url": "javascript:alert(1)"})
         check(response.status_code == 400, "Unsafe destination must be rejected")
         before = datetime.now(timezone.utc).replace(tzinfo=None)
         # BSON dates truncate microseconds to milliseconds. Compare both bounds
         # at that same precision so fast requests do not fail intermittently.
         before = before.replace(microsecond=(before.microsecond // 1000) * 1000)
-        response = guest.post("/short", data={"url": "https://example.com/guest"})
+        response = guest.post("/api/links", json={"url": "https://example.com/guest"})
         after = datetime.now(timezone.utc).replace(tzinfo=None)
         after = after.replace(microsecond=(after.microsecond // 1000) * 1000)
         check(response.status_code == 200, "Guest creation failed")
@@ -63,39 +63,48 @@ def main():
             "firstName": "Test", "lastName": "Member", "email": "member@example.com",
             "password": "ci-test-password", "repeatPassword": "different",
         }
-        response = member.post("/register", data=registration)
-        check(response.status_code == 400 and b"Passwords must match." in response.data,
+        response = member.post("/api/auth/register", json=registration)
+        check(response.status_code == 400 and "Passwords must match." in response.json["error"],
               "Password mismatch must show validation feedback")
         registration["repeatPassword"] = registration["password"]
-        check(member.post("/register", data=registration).status_code == 302, "Registration failed")
+        check(member.post("/api/auth/register", json=registration).status_code == 201, "Registration failed")
         owner = UserModel.objects.get(email=registration["email"])
-        response = member.post("/short", data={"url": "https://example.com/member"})
+        token_cookie = member.get_cookie("access_token_cookie", path="/api/")
+        check(token_cookie.http_only, "JWT must use an HttpOnly cookie")
+        check("access_token" not in member.get("/api/auth/me").json, "JWT must not be returned to JavaScript")
+        csrf_headers = {"X-CSRF-TOKEN": member.get_cookie("csrf_access_token").value}
+        denied = member.post("/api/links", json={"url": "https://example.com/blocked"})
+        check(denied.status_code == 401, "Authenticated writes without CSRF must be rejected")
+        response = member.post("/api/links", json={"url": "https://example.com/member"}, headers=csrf_headers)
         check(response.status_code == 200, "Member link creation failed")
         permanent = UrlModel.objects.get(code=urlsplit(response.json["url"]).path[1:])
         check(permanent.expires_at is None and permanent.user.id == owner.id,
               "Member links must be permanent and owned")
-        stats = member.get("/urls-stat").json
+        stats = member.get("/api/links").json
         check(len(stats) == 1 and stats[0]["id"] == str(permanent.id),
               "Dashboard must only include owned links")
         check(member.get("/dashboard").status_code == 200, "Member dashboard failed")
-        check(guest.delete("/urls/" + str(permanent.id)).status_code == 401,
+        check(guest.delete("/api/links/" + str(permanent.id)).status_code == 401,
               "Guest deletion must be blocked")
-        check(member.delete("/urls/" + str(link.id)).status_code == 404,
+        check(member.delete("/api/links/" + str(link.id), headers=csrf_headers).status_code == 404,
               "Member must not manage guest links")
-        check(member.delete("/urls/" + str(permanent.id)).status_code == 204,
+        check(member.delete("/api/links/" + str(permanent.id), headers=csrf_headers).status_code == 204,
               "Member deletion failed")
-        check(member.delete("/logout").status_code == 200, "Logout failed")
-        check(member.post("/login", data={"username": registration["email"],
-                                         "password": registration["password"]}).status_code == 302,
+        check(member.post("/api/auth/logout", headers=csrf_headers).status_code == 200, "Logout failed")
+        replay = app.test_client()
+        replay.set_cookie("access_token_cookie", token_cookie.value, path="/api/")
+        check(replay.get("/api/links").status_code == 401, "Logged-out token must be revoked across clients")
+        check(member.post("/api/auth/login", json={"email": registration["email"],
+                                         "password": registration["password"]}).status_code == 200,
               "Login failed")
 
         limiter.enabled = True
         limiter.reset()
-        responses = [guest.get("/login") for _ in range(5)]
-        check(responses[-1].status_code == 429 and b"error-card" in responses[-1].data,
-              "Rate limit must return the styled 429 page")
+        responses = [guest.post("/api/auth/login", json={"email": "missing@example.com", "password": "wrong"}) for _ in range(5)]
+        check(responses[-1].status_code == 429 and "error" in responses[-1].json,
+              "API rate limit must return JSON for the shared frontend error component")
         check(guest.get("/health").status_code == 200, "Health must remain exempt from rate limits")
-        print("Compose integration passed: pages, authentication, guest expiry, TTL index, ownership, and rate limits")
+        print("Compose integration passed: Vue shell, JWT cookies, CSRF, revocation, guest expiry, ownership, and rate limits")
     finally:
         connection.drop_database(database_name)
         disconnect()

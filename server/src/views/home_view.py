@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, session, redirect, jsonify, Response, current_app
+from flask import Blueprint, request, render_template, g, redirect, jsonify, Response, current_app
 import http.client
 from utils.url_resolver import InvalidPublicURL, resolve_public_url
 from utils.url_validation import validate_destination_url
@@ -7,22 +7,17 @@ from utils.short_links import public_base_url
 from secrets import choice
 from string import ascii_letters, digits
 from models.url_model import UrlModel
-from models.user_model import UserModel
+from utils.jwt_auth import login_required
 from mongoengine import NotUniqueError, Q
 
 
 home_blueprint = Blueprint("home_view", __name__)
 
 
-@home_blueprint.route("/")
-@home_blueprint.route("/home")
-def render():
-    return render_template("home.html")
-
-
-@home_blueprint.route("/geturl", methods=["POST"])
+@home_blueprint.route("/api/resolve", methods=["POST"])
 def get_url():
-    url = request.form.get("url")
+    data = request.get_json()
+    url = data.get("url") if isinstance(data, dict) else None
     try:
         return jsonify({"url": resolve_public_url(url)})
     except InvalidPublicURL as error:
@@ -33,20 +28,22 @@ def get_url():
         return jsonify({"error": "Could not retrieve the destination URL."}), 502
 
 
-@home_blueprint.route("/short", methods=["POST"])
+@home_blueprint.route("/api/links", methods=["POST"])
+@login_required(optional=True)
 def short_it():
+    data = request.get_json()
     try:
-        full_url = validate_destination_url(request.form.get("url"))
+        full_url = validate_destination_url(data.get("url") if isinstance(data, dict) else None)
     except ValueError as error:
         return jsonify({"error": str(error)}), 400
-    user = session.get("current_user")
-    user_id = user.get("id") if isinstance(user, dict) else None
-    user_model = UserModel.objects.get(id=user_id) if user_id else None
+    user_model = g.current_user
     expires_at = None if user_model else datetime.now(timezone.utc) + timedelta(hours=24)
     chars = ascii_letters+digits
     base_url = public_base_url(current_app.config.get("PUBLIC_BASE_URL", "http://localhost:5000"))
     for _ in range(10):
         short_string = ''.join(choice(chars) for _ in range(6))
+        if short_string == "health":
+            continue
         short_url = f"{base_url}/{short_string}"
         try:
             UrlModel(code=short_string, short_url=short_url,

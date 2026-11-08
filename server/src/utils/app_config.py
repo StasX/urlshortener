@@ -13,3 +13,4 @@ class AppConfig:
     db_user = environ.get("DB_USER")
     db_password = environ.get("DB_PASSWORD")
     public_base_url = environ.get("PUBLIC_BASE_URL", "http://localhost:5000")
+    spa_dev_origin = environ.get("SPA_DEV_ORIGIN", "")

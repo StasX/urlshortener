@@ -1,10 +1,19 @@
+FROM node:24-slim AS frontend-builder
+
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+
 FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
 RUN python -m venv /opt/venv
 
-COPY requirements.txt ./
+COPY server/requirements.txt ./
 RUN /opt/venv/bin/pip install --no-cache-dir -r requirements.txt \
     && /opt/venv/bin/pip check
 
@@ -21,8 +30,9 @@ RUN groupadd --system app \
     && useradd --system --gid app --home-dir /app app
 
 COPY --from=builder /opt/venv /opt/venv
-COPY --chown=app:app src/ ./
-COPY --chown=app:app gunicorn.conf.py ./
+COPY --chown=app:app server/src/ ./
+COPY --chown=app:app server/gunicorn.conf.py ./
+COPY --from=frontend-builder /frontend/dist ./frontend
 
 USER app
 

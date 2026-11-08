@@ -38,27 +38,21 @@ class LinkConfigurationTests(unittest.TestCase):
         collection.create_index.assert_not_called()
 
 
-HAS_DEPENDENCIES = all(importlib.util.find_spec(name) for name in ("flask", "mongoengine"))
+HAS_DEPENDENCIES = all(importlib.util.find_spec(name) for name in ("flask", "mongoengine", "flask_jwt_extended"))
 
 
 @unittest.skipUnless(HAS_DEPENDENCIES, "Flask and MongoEngine are required")
 class LinkRouteTests(unittest.TestCase):
     def setUp(self):
-        from flask import Flask
-        from views.home_view import home_blueprint
-        self.app = Flask(__name__)
-        self.app.config.update(TESTING=True, SECRET_KEY="test-key",
-                               PUBLIC_BASE_URL="https://short.example")
-        self.app.register_blueprint(home_blueprint)
-        self.client = self.app.test_client()
-        with self.client.session_transaction() as session:
-            session["current_user"] = {"id": "user-id"}
+        from jwt_helpers import make_app, authenticate
+        self.app, self.client, self.user = make_app(self)
+        authenticate(self.app, self.client, self.user.id)
 
     def test_creation_ignores_host_and_retries_duplicate_insert(self):
         from mongoengine import NotUniqueError
-        with patch("views.home_view.UserModel.objects"), patch("views.home_view.UrlModel") as model, patch("views.home_view.choice", side_effect=list("abc123def456")):
+        with patch("views.home_view.UrlModel") as model, patch("views.home_view.choice", side_effect=list("abc123def456")):
             model.return_value.save.side_effect = [NotUniqueError(), None]
-            response = self.client.post("/short", data={"url": "https://destination.example"},
+            response = self.client.post("/api/links", json={"url": "https://destination.example"},
                                         headers={"Host": "untrusted.example"})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json, {"url": "https://short.example/def456"})
@@ -82,29 +76,29 @@ class LinkRouteTests(unittest.TestCase):
 
     def test_exhausted_collisions_return_503(self):
         from mongoengine import NotUniqueError
-        with patch("views.home_view.UserModel.objects"), patch("views.home_view.UrlModel") as model:
+        with patch("views.home_view.UrlModel") as model:
             model.return_value.save.side_effect = NotUniqueError()
-            response = self.client.post("/short", data={"url": "https://destination.example"})
+            response = self.client.post("/api/links", json={"url": "https://destination.example"})
             self.assertEqual(response.status_code, 503)
             self.assertEqual(model.return_value.save.call_count, 10)
 
     def test_guest_link_expires_after_24_hours_without_user_lookup(self):
         from datetime import datetime, timedelta, timezone
-        with self.client.session_transaction() as session:
-            session.clear()
+        self.client.delete_cookie("access_token_cookie", path="/api/")
+        self.users.reset_mock()
         before = datetime.now(timezone.utc)
-        with patch("views.home_view.UserModel.objects") as users, patch("views.home_view.UrlModel") as model:
-            response = self.client.post("/short", data={"url": "https://destination.example"})
+        with patch("views.home_view.UrlModel") as model:
+            response = self.client.post("/api/links", json={"url": "https://destination.example"})
             self.assertEqual(response.status_code, 200)
-            users.assert_not_called()
+            self.users.assert_not_called()
             self.assertIsNone(model.call_args.kwargs["user"])
             expiry = model.call_args.kwargs["expires_at"]
             self.assertGreaterEqual(expiry, before + timedelta(hours=24))
             self.assertLessEqual(expiry, datetime.now(timezone.utc) + timedelta(hours=24))
 
     def test_authenticated_links_do_not_expire(self):
-        with patch("views.home_view.UserModel.objects"), patch("views.home_view.UrlModel") as model:
-            response = self.client.post("/short", data={"url": "https://destination.example"})
+        with patch("views.home_view.UrlModel") as model:
+            response = self.client.post("/api/links", json={"url": "https://destination.example"})
             self.assertEqual(response.status_code, 200)
             self.assertIsNone(model.call_args.kwargs["expires_at"])
 
