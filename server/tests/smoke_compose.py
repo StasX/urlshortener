@@ -32,14 +32,20 @@ def main():
         response = guest.post("/short", data={"url": "javascript:alert(1)"})
         check(response.status_code == 400, "Unsafe destination must be rejected")
         before = datetime.now(timezone.utc).replace(tzinfo=None)
+        # BSON dates truncate microseconds to milliseconds. Compare both bounds
+        # at that same precision so fast requests do not fail intermittently.
+        before = before.replace(microsecond=(before.microsecond // 1000) * 1000)
         response = guest.post("/short", data={"url": "https://example.com/guest"})
+        after = datetime.now(timezone.utc).replace(tzinfo=None)
+        after = after.replace(microsecond=(after.microsecond // 1000) * 1000)
         check(response.status_code == 200, "Guest creation failed")
         path = urlsplit(response.json["url"]).path
         link = UrlModel.objects.get(code=path[1:])
         check(link.user is None, "Guest link must not have an owner")
         check(before + timedelta(hours=24) <= link.expires_at <=
-              datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=24),
-              "Guest expiry must be 24 hours after creation")
+              after + timedelta(hours=24),
+              f"Guest expiry must be 24 hours after creation: got {link.expires_at}, "
+              f"expected between {before + timedelta(hours=24)} and {after + timedelta(hours=24)}")
         response = guest.get(path)
         check(response.status_code == 302 and response.location == "https://example.com/guest",
               "Guest link must redirect to its destination")
