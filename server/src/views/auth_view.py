@@ -1,4 +1,5 @@
-from flask import Blueprint, request, render_template, session, redirect, url_for,Response
+from flask import Blueprint, request, render_template, session, redirect, url_for,Response, current_app
+from mongoengine import ValidationError, NotUniqueError
 from models.user_model import UserModel
 from utils.security import Security
 
@@ -41,13 +42,32 @@ def register():
         return render_template("register.html")
     # login
     try:
-        email = request.form.get("email")
+        email = request.form.get("email", "").strip()
+        first_name = request.form.get("firstName", "").strip()
+        last_name = request.form.get("lastName", "").strip()
+        password = request.form.get("password", "")
+        repeat_password = request.form.get("repeatPassword", "")
+        errors = []
+        for label, value, field_name in (
+            ("First name", first_name, "first_name"),
+            ("Last name", last_name, "last_name"),
+        ):
+            field = UserModel._fields[field_name]
+            if not field.min_length <= len(value) <= field.max_length:
+                errors.append(f"{label} must be between {field.min_length} and {field.max_length} characters.")
+        try:
+            UserModel._fields["email"].validate(email)
+        except ValidationError:
+            errors.append("Enter a valid email address (5–64 characters).")
+        if not password:
+            errors.append("Enter a password.")
+        elif password != repeat_password:
+            errors.append("Passwords must match.")
+        if errors:
+            return render_template("register.html", error=" ".join(errors)), 400
         user = UserModel.objects(email=email)
         if len(user) > 0:
             return render_template("register.html", error="User with this email exists.")
-        first_name = request.form.get("firstName")
-        last_name = request.form.get("lastName")
-        password = request.form.get("password")
         UserModel(first_name=first_name, last_name=last_name,
                   email=email, password=Security.hash(password)).save()
         user = UserModel.objects.get(email=email)
@@ -60,8 +80,13 @@ def register():
             }
             return redirect(url_for("home_view.render"))
         return render_template("register.html", error="Something went wrong, and user haven't created.")
-    except Exception as err:
-        return render_template("register.html", error=str(err))
+    except NotUniqueError:
+        return render_template("register.html", error="User with this email exists."), 400
+    except ValidationError:
+        return render_template("register.html", error="Check your registration details and try again."), 400
+    except Exception:
+        current_app.logger.exception("Registration failed")
+        return render_template("register.html", error="Could not create your account. Please try again."), 500
 
 
 @auth_blueprint.route("/logout",methods=["DELETE"])
