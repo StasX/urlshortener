@@ -1,16 +1,26 @@
-FROM python:3.12-slim
+FROM python:3.12-slim AS builder
+
+WORKDIR /build
+
+RUN python -m venv /opt/venv
+
+COPY requirements.txt ./
+RUN /opt/venv/bin/pip install --no-cache-dir -r requirements.txt \
+    && /opt/venv/bin/pip check
+
+
+FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt \
-    && groupadd --system app \
+RUN groupadd --system app \
     && useradd --system --gid app --home-dir /app app
 
+COPY --from=builder /opt/venv /opt/venv
 COPY --chown=app:app src/ ./
 COPY --chown=app:app gunicorn.conf.py ./
 

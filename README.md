@@ -93,6 +93,10 @@ checks are exempt.
 | `server` | `server/` | `app` | HTTP request to `/health` on port 5000. |
 | `db` | `db/` | `mongodb` | MongoDB ping using `mongosh`. |
 
+The server image uses a multi-stage build: the builder installs and checks
+dependencies in `/opt/venv`, then the runtime stage copies that environment and
+the application code. Both stages use Python 3.12 slim; the runtime runs as `app`.
+
 The server waits for MongoDB to become healthy before starting. Both services
 join the internal `backend` bridge network. Only the server also joins the
 `frontend` network, which provides external connectivity for destination lookup.
