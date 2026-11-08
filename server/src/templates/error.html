@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block title %} {{ error_title }} · Shorty {% endblock title %}
+{% block content %}
+<section class="error-page">
+    <div class="card error-card"><div class="card-body">
+        <span class="eyebrow">A small detour</span>
+        <div class="error-code" aria-hidden="true">{{ error_code }}</div>
+        <h1>{{ error_title }}</h1>
+        <p class="muted">{{ error_message }}</p>
+        <a class="btn btn-dark" href="{{ url_for('home_view.render') }}">Back to link tools &#8599;</a>
+    </div></div>
+</section>
+{% endblock content %}

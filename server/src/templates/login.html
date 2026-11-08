@@ -3,13 +3,16 @@
 {% block content %}
 <div class="container">
     <form class="col-lg-6 col-md-8 col-sm-10 col-xs-12 login-form" method="post">
+        <span class="eyebrow">Good to see you</span>
+        <h1>Welcome back.</h1>
+        <p class="muted">Your links are right where you left them.</p>
         <div class="form-group">
-            <label for="username">Username:</label>
-            <input type="text" class="form-control" id="username" name="username">
+            <label for="username">Email address</label>
+            <input type="text" class="form-control" id="username" name="username" autocomplete="username" placeholder="you@example.com" required>
         </div>
         <div class="form-group">
             <label for="password">Password:</label>
-            <input type="password" class="form-control" id="password" name="password">
+            <input type="password" class="form-control" id="password" name="password" autocomplete="current-password" required>
         </div>
         <div class="row">
             <div class="col-sm-6">
@@ -21,7 +24,7 @@
         </div>
         {% if error %}
         <div>
-            <div class="alert alert-warning"">{{error}}</div>
+            <div class="error-message" role="alert">{{error}}</div>
             
         </div>
         {% endif %}

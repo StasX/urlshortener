@@ -1,9 +1,4 @@
-{% extends "layout.html" %}
-{% block title %} Page not found {% endblock title %}
-{% block content %}
-<div class="404-page">
-    <h1>Error</h1>
-    <div class="large">4<i class="fa-solid fa-face-frown"></i>4</div>
-    <h3>The page was not found!</h3>
-</div>
-{% endblock content %}
+{% extends "error.html" %}
+{% set error_code = 404 %}
+{% set error_title = "This link took a wrong turn." %}
+{% set error_message = "We couldn't find that page or short link. Check the address, or head back to create something new." %}

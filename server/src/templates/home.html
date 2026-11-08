@@ -1,47 +1,42 @@
 {% extends "layout.html" %}
-{% block title %} Home {% endblock title %}
+{% block title %} Shorty &middot; Make every link count {% endblock title %}
 {% block content %}
-<div class="home">
-    <div class="card">
-        <div class="card-body" name="reverse">
-            <h5 class="card-title">Get real URL from shortened URL</h5>
-            <p class="card-text">Just enter url...</p>
-            <div>
-                <div class="form-group mx-sm-3 mb-2">
-                    <label for="url" class="sr-only">Shortened URL</label>
-                    <input type="url" class="form-control" id="url">
-                </div>
-                <div class="form-group mx-sm-3 mb-2">
-                    <label for="result" class="sr-only">Real URL:</label>
-                    <output id="result" class="form-control"></output>
-                </div>
-                <button class="btn btn-dark mb-2" id="reverse">Get real URL</button>
-            </div>
-        </div>
-    </div>
-    <div class="card">
-        <div class="card-body" name="reverse">
-
+<section class="hero">
+    <span class="eyebrow"><span class="status-dot"></span> A little link goes a long way</span>
+    <h1>Long links.<br><span>Short stories.</span></h1>
+    <p>Make your next link easier to share. Shorten a URL, uncover its destination, and keep track of the clicks that follow.</p>
+    <div class="hero-note"><span aria-hidden="true">&#8599;</span> Small links. A smoother way to share.</div>
+</section>
+<div class="home tool-grid">
+    <section class="card tool-card">
+        <div class="card-body">
+            <div class="tool-heading"><span class="tool-icon" aria-hidden="true">&#8599;</span><span class="eyebrow">01 / Create</span></div>
+            <h2>Less link, more impact.</h2>
+            <p class="muted">Turn a lengthy URL into something worth sharing.</p>
             {% if user %}
-            <div>
-                <div class="form-group mx-sm-3 mb-2">
-                    <label for="fullUrl" class="sr-only">URL</label>
-                    <textarea class="form-control" id="fullUrl"></textarea>
-                </div>
-                <div class="form-group mx-sm-3 mb-2">
-                    <label for="shortedUrl" class="sr-only">Real URL:</label>
-                    <output id="shortedUrl" class="form-control"></output>
-                </div>
-                <button class="btn btn-dark mb-2" id="shortIt">Short It!</button>
-            </div>
+            <label for="fullUrl">Your destination URL</label>
+            <textarea class="form-control" id="fullUrl" placeholder="https://example.com/your-next-big-idea" rows="3"></textarea>
+            <button class="btn btn-dark tool-submit" id="shortIt" type="button">Create short link <span aria-hidden="true">&#8599;</span></button>
+            <output id="shortedUrl" class="form-control result-box" aria-live="polite" aria-label="Short link result"></output>
             {% else %}
-            <h5 class="card-title">Want to generate short URLs?</h5>
-            <p class="card-text">Please sign in and get more futures...</p>
-            <h6>It free!</h6>
-            <a href="{{url_for('auth_view.login')}}" class="btn btn-outline-dark">Sign in</a>
-            <a href="{{url_for('auth_view.register')}}" class="btn btn-outline-dark">Sign up</a>            
+            <div class="link-preview" aria-hidden="true"><span>your-very-long-link.com/&hellip;</span><span>&#8599;</span><strong>shorty / your next idea</strong></div>
+            <a href="{{ url_for('auth_view.register') }}" class="btn btn-dark tool-submit">Create your free account <span aria-hidden="true">&#8599;</span></a>
+            <p class="small-note">Already here? <a href="{{ url_for('auth_view.login') }}">Sign in</a> to start shortening.</p>
             {% endif %}
         </div>
-    </div>
+    </section>
+    <section class="card tool-card resolve-card">
+        <div class="card-body">
+            <div class="tool-heading"><span class="tool-icon" aria-hidden="true">&#8599;</span><span class="eyebrow">02 / Explore</span></div>
+            <h2>Know where it goes.</h2>
+            <p class="muted">Reveal the next destination behind a shortened link.</p>
+            <label for="url">Shortened URL</label>
+            <input type="url" class="form-control" id="url" placeholder="https://short.example/aBc123">
+            <button class="btn btn-outline-dark tool-submit" id="reverse" type="button">Reveal destination <span aria-hidden="true">&#8599;</span></button>
+            <output id="result" class="form-control result-box" aria-live="polite" aria-label="Destination result"></output>
+            <p class="small-note">No account needed. Just paste a link and take a look.</p>
+        </div>
+    </section>
 </div>
+<div class="benefit-strip"><span>01 <strong>Share with ease</strong></span><span>02 <strong>See the destination</strong></span><span>03 <strong>Track your clicks</strong></span></div>
 {% endblock content %}

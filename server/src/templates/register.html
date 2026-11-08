@@ -3,6 +3,9 @@
 {% block content %}
 <div class="container">
     <form class="col-lg-6 col-md-8 col-sm-10 col-xs-12 register-form" method="post">
+        <span class="eyebrow">Join Shorty</span>
+        <h1>Start something short.</h1>
+        <p class="muted">Create your free account. Make room for better links.</p>
         <div class="form-group">
             <label for="firstName">First Name:</label>
             <input type="text" class="form-control" id="firstName" name="firstName" placeholder="First Name" required minlength="2" maxlength="30" value="{{ request.form.get('firstName', '') }}">
@@ -28,7 +31,7 @@
         </div>
         {% if error %}
         <div>
-            <div class="alert alert-warning" role="alert">{{error}}</div>
+            <div class="error-message" role="alert">{{error}}</div>
             
         </div>
         {% endif %}

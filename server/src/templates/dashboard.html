@@ -1,15 +1,9 @@
 {% extends "layout.html" %}
-{% block title %} Page not found {% endblock title %}
+{% block title %} Dashboard · Shorty {% endblock title %}
 {% block content %}
-<div class="dashboard">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-6" id="urlsContainer">
-            </div>
-            <div class="col-md-6">
-                <canvas id="urlsPie"></canvas>
-            </div>
-        </div>
-    </div>
+<section class="page-heading"><span class="eyebrow">Your link collection</span><h1>A little overview.</h1><p class="muted">All your links and the clicks they collect, in one place.</p><a class="btn btn-dark" href="{{ url_for('home_view.render') }}">Create a link &#8599;</a></section>
+<div class="dashboard dashboard-grid">
+    <section aria-label="Your links"><div class="section-heading"><h2>Your links</h2><span class="eyebrow">Ready to share</span></div><div id="urlsContainer"><p id="linksStatus" class="empty-state" role="status">Loading your links&hellip;</p></div></section>
+    <section class="card chart-panel"><div class="card-body"><span class="eyebrow">The bigger picture</span><h2>Clicks at a glance</h2><p class="muted">How visits are shared across your links.</p><canvas id="urlsPie" role="img" aria-label="Visits per short link"></canvas><p id="chartStatus" class="small-note" role="status"></p></div></section>
 </div>
 {% endblock content %}
