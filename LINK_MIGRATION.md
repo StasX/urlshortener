@@ -7,7 +7,7 @@ For an existing database:
 
 1. Back up MongoDB and stop all application instances.
 2. Set `PUBLIC_BASE_URL` and the existing `DB_NAME`, `DB_HOST`, and `DB_PORT` settings.
-3. From the project root, run `python src/migrations/migrate_short_codes.py` before starting the updated application.
+3. From the project root, run `python server/src/migrations/migrate_short_codes.py` before starting the updated application.
 4. Start the application after the migration succeeds.
 
 The migration preserves codes and visit counts, updates displayed short URLs to

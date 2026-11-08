@@ -12,7 +12,7 @@ $.ajax = (options) => {
     };
 };
 const context = vm.createContext({ $, document: {}, location: { reload() { reloads++; } } });
-vm.runInContext(fs.readFileSync("src/static/js/main.js", "utf8"), context);
+vm.runInContext(fs.readFileSync(require("node:path").join(__dirname, "../src/static/js/main.js"), "utf8"), context);
 const button = { prop(name, value) { assert.equal(name, "disabled"); this.disabled = value; } };
 const error = { text(value) { this.message = value; } };
 
