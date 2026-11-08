@@ -8,6 +8,9 @@ services:
       - .env
     environment:
       DB_HOST: db
+    networks:
+      - backend
+      - frontend
     depends_on:
       db:
         condition: service_healthy
@@ -18,7 +21,16 @@ services:
       context: ./db
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - backend
     restart: unless-stopped
 
 volumes:
   mongodb_data:
+
+networks:
+  backend:
+    driver: bridge
+    internal: true
+  frontend:
+    driver: bridge
