@@ -55,6 +55,12 @@ def frontend_asset(filename):
     return send_from_directory(frontend_directory / "assets", filename)
 
 
+@app.get("/favicon.ico")
+@limiter.exempt
+def favicon():
+    return send_from_directory(frontend_directory, "favicon.ico", mimetype="image/x-icon")
+
+
 @app.after_request
 def response_headers(response):
     if request.path.startswith("/api/") or request.endpoint == "spa":

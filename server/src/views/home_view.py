@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, g, redirect, jsonify, Response, current_app
+from flask import Blueprint, request, render_template, g, redirect, jsonify, current_app
 import http.client
 from utils.url_resolver import InvalidPublicURL, resolve_public_url
 from utils.url_validation import validate_destination_url
@@ -59,8 +59,6 @@ def short_it():
 
 @home_blueprint.route("/<url_part>")
 def redirect_to(url_part):
-    if url_part == "favicon.ico":
-        return Response(status=200)
     url_model = UrlModel.objects(code=url_part).filter(
         Q(expires_at=None) | Q(expires_at__gt=datetime.now(timezone.utc))
     ).modify(inc__enters=1, new=True)
