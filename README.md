@@ -11,7 +11,8 @@ responsive dark green design, with Bootstrap and Chart.js bundled by Vite.
 - **Member links:** register or sign in before creating a link to keep it
   without an expiry date and manage it from your dashboard.
 - **Link management:** view destinations and visit counts, see a visit chart,
-  and delete your own links. Flask-SocketIO updates open dashboards when links
+  create links directly from the dashboard, and delete your own links.
+  Flask-SocketIO updates open dashboards when links
   are created, deleted, or visited, including activity in other tabs.
 - **Destination lookup:** reveal the next redirect destination of a public
   HTTP or HTTPS URL without signing in.
@@ -23,6 +24,41 @@ responsive dark green design, with Bootstrap and Chart.js bundled by Vite.
 Expired guest links stop redirecting immediately. MongoDB removes their records
 in the background through a TTL index, so physical deletion may happen later.
 Guest links remain unmanaged if their creator subsequently registers or signs in.
+
+## Screenshots
+
+### Home
+
+Create short links and reveal redirect destinations from the home page.
+
+![Shorty home page with navigation and link tools](docs/screenshots/Shorty_home.png)
+
+<details>
+<summary>Link tools and page footer</summary>
+
+![URL creation and destination lookup forms](docs/screenshots/Shorty_home2.png)
+
+</details>
+
+### Sign in
+
+Sign in to keep links permanently and manage them from your dashboard.
+
+![Shorty sign-in page](docs/screenshots/Shorty_login.png)
+
+### Dashboard
+
+Create links without leaving the dashboard, manage existing links, and see
+visit counts and a chart that update as links are visited.
+
+![Shorty dashboard with link creation and visit statistics](docs/screenshots/Shorty_dashboard.png)
+
+<details>
+<summary>Link collection and visit chart</summary>
+
+![Managed short links with visit counts and a doughnut chart](docs/screenshots/Shorty_dashboard2.png)
+
+</details>
 
 ## Quick start
 
@@ -302,6 +338,7 @@ frontend/
   tsconfig.json              Strict TypeScript configuration
   package-lock.json          Locked frontend dependencies
 db/Dockerfile                MongoDB image and health check
+docs/screenshots/            Application screenshots shown in this README
 server/
   Dockerfile                 Vue build, Python builder, and non-root runtime
   gunicorn.conf.py           Gunicorn process configuration
