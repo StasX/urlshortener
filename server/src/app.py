@@ -8,6 +8,7 @@ from werkzeug.exceptions import HTTPException
 
 from utils.app_config import AppConfig
 from utils.jwt_auth import configure_jwt
+from utils.realtime import configure_realtime
 from utils.short_links import public_base_url
 from views.auth_view import auth_blueprint
 from views.dashboard_view import dashboard_blueprint
@@ -19,11 +20,13 @@ app.config["PUBLIC_BASE_URL"] = public_base_url(AppConfig.public_base_url)
 app.config["SPA_DEV_ORIGIN"] = AppConfig.spa_dev_origin
 app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
 configure_jwt(app)
+configure_realtime(app)
 limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"], storage_uri="memory://")
 connect(db=AppConfig.db_name, host=AppConfig.db_host, port=AppConfig.db_port)
 app.register_blueprint(auth_blueprint)
 app.register_blueprint(home_blueprint)
 app.register_blueprint(dashboard_blueprint)
+limiter.exempt(app.view_functions["dashboard_view.stat"])
 for endpoint in ("auth_view.login", "auth_view.register", "home_view.short_it", "home_view.get_url"):
     app.view_functions[endpoint] = limiter.limit("4 per minute")(app.view_functions[endpoint])
 

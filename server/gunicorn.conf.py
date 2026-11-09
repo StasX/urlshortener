@@ -3,10 +3,11 @@ import os
 # Network
 bind = f"{os.getenv('APP_HOST', '0.0.0.0')}:5000"  # nosec B104
 
-# Workers (Gunicorn uses gthread when threads > 1).
-workers = int(os.getenv("GUNICORN_WORKERS", "2"))
+# Socket.IO rooms are in-process; multiple workers require a message broker
+# and sticky routing across separately deployed single-worker instances.
+workers = 1
 worker_class = "gthread"
-threads = 2
+threads = 100
 
 # Connection handling
 timeout = 30

@@ -3,6 +3,7 @@ from flask import Blueprint, Response, g, jsonify
 
 from models.url_model import UrlModel
 from utils.jwt_auth import login_required
+from utils.realtime import notify_links_changed
 
 
 dashboard_blueprint = Blueprint("dashboard_view", __name__, url_prefix="/api/links")
@@ -24,4 +25,5 @@ def delete_url(url_id):
         return jsonify(error="Link not found."), 404
     if not UrlModel.objects(id=url_id, user=g.current_user.id).delete():
         return jsonify(error="Link not found."), 404
+    notify_links_changed(g.current_user.id)
     return Response(status=204)

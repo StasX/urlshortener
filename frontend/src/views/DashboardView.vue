@@ -1,17 +1,35 @@
 <script setup lang="ts">
 import type { ShortLink } from '../types'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { io } from 'socket.io-client'
 import { RouterLink } from 'vue-router'
 import { api, errorMessage } from '../api'
 import ErrorMessage from '../components/ErrorMessage.vue'
 import VisitsChart from '../components/VisitsChart.vue'
 const links = ref<ShortLink[]>([]), loading = ref(true), error = ref(''), deleting = ref<string | null>(null), deleteErrors = ref<Record<string, string>>({})
 const totalVisits = computed(() => links.value.reduce((total, link) => total + link.visits, 0))
+const socket = io({ path: '/api/socket.io', autoConnect: false })
+let active = true, refreshing = false, pending = false
+async function refresh() {
+  pending = true
+  if (refreshing) return
+  refreshing = true
+  try {
+    while (pending && active) {
+      pending = false
+      try {
+        const result = await api<ShortLink[]>('/links')
+        if (active) { links.value = result; error.value = '' }
+      } catch (failure) {
+        if (active) error.value = errorMessage(failure)
+      }
+    }
+  } finally { refreshing = false; if (active) loading.value = false }
+}
 async function load() {
   loading.value = true; error.value = ''
-  try { links.value = await api<ShortLink[]>('/links') }
-  catch (failure) { error.value = errorMessage(failure) }
-  finally { loading.value = false }
+  if (!socket.connected) socket.connect()
+  await refresh()
 }
 async function remove(link: ShortLink) {
   deleting.value = link.id; deleteErrors.value[link.id] = ''
@@ -19,7 +37,16 @@ async function remove(link: ShortLink) {
   catch (failure) { deleteErrors.value[link.id] = errorMessage(failure) }
   finally { deleting.value = null }
 }
-onMounted(load)
+onMounted(() => {
+  socket.on('links_changed', refresh)
+  socket.on('connect', refresh)
+  socket.on('connect_error', () => {
+    if (active) error.value = 'Live updates are unavailable. Try again to reconnect.'
+  })
+  socket.connect()
+  load()
+})
+onUnmounted(() => { active = false; socket.removeAllListeners(); socket.disconnect() })
 </script>
 <template>
   <div class="dashboard-page">

@@ -11,7 +11,8 @@ responsive dark green design, with Bootstrap and Chart.js bundled by Vite.
 - **Member links:** register or sign in before creating a link to keep it
   without an expiry date and manage it from your dashboard.
 - **Link management:** view destinations and visit counts, see a visit chart,
-  and delete your own links.
+  and delete your own links. Flask-SocketIO updates open dashboards when links
+  are created, deleted, or visited, including activity in other tabs.
 - **Destination lookup:** reveal the next redirect destination of a public
   HTTP or HTTPS URL without signing in.
 - **Authentication:** registration with password confirmation, scrypt password
@@ -71,7 +72,6 @@ file documents the initial values.
 | `APP_HOST` | `0.0.0.0` | Gunicorn bind address inside the server container. |
 | `APP_PORT` | `5000` | Published host port for the application. |
 | `PUBLIC_BASE_URL` | `http://localhost:5000` | Public HTTP or HTTPS origin used to generate short links. |
-| `GUNICORN_WORKERS` | `2` | Number of Gunicorn worker processes. |
 | `SPA_DEV_ORIGIN` | Empty | Optional trusted Vite origin, such as `http://localhost:5173`; leave blank in production. |
 | `PASSWORDS_SALT` | Empty for new installations | Original salt required to verify legacy password hashes. |
 | `DB_USER`, `DB_PASSWORD` | Empty | Reserved settings; the application currently does not use database authentication. |
@@ -81,12 +81,22 @@ not belong in `.env` for this setup. If you change `APP_PORT`, update
 `PUBLIC_BASE_URL` to the matching public address. Generated links use this
 configured origin rather than incoming request headers.
 
-Gunicorn settings live in `server/gunicorn.conf.py`: two worker processes by
-default, two threads per worker, a 30-second timeout, and logs sent to container
+Gunicorn settings live in `server/gunicorn.conf.py`: one worker process with
+100 threads, a 30-second timeout, and logs sent to container
 output. Flask-Limiter currently uses in-memory storage with a default limit of
 60 requests per minute per client IP and endpoint, in each worker. Login,
 registration, link creation, and destination lookup have a limit of four per
-minute. The SPA shell, assets, and health endpoint are exempt.
+minute. The SPA shell, assets, health endpoint, and authenticated dashboard reads
+are exempt. Dashboard reads can be triggered by bursts of live activity.
+
+Socket.IO uses `/api/socket.io` so the existing HttpOnly JWT cookie authenticates
+the connection. Notifications go only to the owner's room and contain no link
+data; the dashboard fetches fresh data through the authenticated API. Reconnecting
+also refreshes the dashboard. Vite proxies both HTTP and WebSocket traffic for
+this path. Production reverse proxies must forward WebSocket upgrades too.
+Keep the supplied single-worker setup: multiple instances require a shared
+message broker and sticky routing, as described in the
+[Flask-SocketIO deployment guide](https://flask-socketio.readthedocs.io/en/latest/deployment.html).
 
 ## Containers, networking, and storage
 

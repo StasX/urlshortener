@@ -8,6 +8,7 @@ from secrets import choice
 from string import ascii_letters, digits
 from models.url_model import UrlModel
 from utils.jwt_auth import login_required
+from utils.realtime import notify_links_changed
 from mongoengine import NotUniqueError, Q
 
 
@@ -50,6 +51,8 @@ def short_it():
                      full_url=full_url, user=user_model, expires_at=expires_at).save()
         except NotUniqueError:
             continue
+        if user_model:
+            notify_links_changed(user_model.id)
         return jsonify({"url": short_url})
     return jsonify({"error": "Could not allocate a short URL. Please try again."}), 503
 
@@ -63,4 +66,5 @@ def redirect_to(url_part):
     ).modify(inc__enters=1, new=True)
     if url_model is None:
         return render_template("404.html"), 404
+    notify_links_changed(url_model.to_mongo().get("user"))
     return redirect(url_model.full_url)
