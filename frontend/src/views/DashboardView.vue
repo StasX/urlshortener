@@ -1,13 +1,25 @@
 <script setup lang="ts">
-import type { ShortLink } from '../types'
+import type { LinkResponse, ShortLink } from '../types'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { io } from 'socket.io-client'
-import { RouterLink } from 'vue-router'
 import { api, errorMessage } from '../api'
 import ErrorMessage from '../components/ErrorMessage.vue'
 import VisitsChart from '../components/VisitsChart.vue'
 const links = ref<ShortLink[]>([]), loading = ref(true), error = ref(''), deleting = ref<string | null>(null), deleteErrors = ref<Record<string, string>>({})
 const totalVisits = computed(() => links.value.reduce((total, link) => total + link.visits, 0))
+const destination = ref(''), creating = ref(false), createError = ref(''), shortResult = ref('')
+async function shorten() {
+  if (creating.value) return
+  creating.value = true; createError.value = ''; shortResult.value = ''
+  try {
+    shortResult.value = (await api<LinkResponse>('/links', {
+      method: 'POST', body: { url: destination.value.trim() },
+    })).url
+    destination.value = ''
+    await refresh()
+  } catch (failure) { createError.value = errorMessage(failure) }
+  finally { creating.value = false }
+}
 const socket = io({ path: '/api/socket.io', autoConnect: false })
 let active = true, refreshing = false, pending = false
 async function refresh() {
@@ -50,7 +62,17 @@ onUnmounted(() => { active = false; socket.removeAllListeners(); socket.disconne
 </script>
 <template>
   <div class="dashboard-page">
-    <section class="page-heading"><span class="eyebrow">Your link collection</span><h1>A little overview.</h1><p class="muted">All your links and the clicks they collect, in one place.</p><RouterLink class="btn btn-dark" to="/">Create a link ↗</RouterLink></section>
+    <section class="page-heading"><span class="eyebrow">Your link collection</span><h1>A little overview.</h1><p class="muted">All your links and the clicks they collect, in one place.</p></section>
+    <section class="card tool-card mb-4" aria-labelledby="dashboard-create-heading"><div class="card-body">
+      <h2 id="dashboard-create-heading">Create a short link</h2>
+      <form @submit.prevent="shorten">
+        <label for="dashboard-destination">Your destination URL</label>
+        <input id="dashboard-destination" v-model="destination" type="url" class="form-control" placeholder="https://example.com/your-next-big-idea" required maxlength="4096" :disabled="creating">
+        <button class="btn btn-dark tool-submit" :disabled="creating">{{ creating ? 'Creating your link…' : 'Create short link' }}</button>
+      </form>
+      <ErrorMessage :message="createError" />
+      <output v-if="shortResult" class="form-control result-box" aria-live="polite"><a :href="shortResult" target="_blank" rel="noopener noreferrer">{{ shortResult }}</a></output>
+    </div></section>
     <div class="dashboard dashboard-grid">
       <section aria-label="Your links"><div class="section-heading"><h2>Your links</h2><span class="eyebrow">{{ links.length }} links · {{ totalVisits }} visits</span></div>
         <p v-if="loading" class="empty-state" role="status">Loading your links…</p><ErrorMessage :message="error" /><button v-if="error" class="btn btn-outline-dark" @click="load">Try again</button><p v-if="!loading && !error && !links.length" class="empty-state">No links yet. Create your first short link to get started.</p>
