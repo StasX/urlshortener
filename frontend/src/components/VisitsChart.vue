@@ -34,6 +34,6 @@ onBeforeUnmount(() => chart?.destroy())
     <div v-if="hasVisits" class="chart-container"><canvas ref="canvas" role="img" aria-label="Visits per short link"></canvas></div><p v-else class="small-note">Your chart will appear when your links receive their first visit.</p>
   </div>
 </template>
-<style scoped>
+<style scoped lang="scss">
 .chart-container { position: relative; height: 320px; width: 100%; }
 </style>
